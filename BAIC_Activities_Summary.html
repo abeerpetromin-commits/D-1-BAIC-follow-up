@@ -709,6 +709,18 @@ function render(rows) {
 
       <div class="reasons-label">Did Not Attend &mdash; Reasons</div>
       ${notAttendRows}
+
+      <div class="reasons-label" style="margin-top:1rem;">Service Outcome</div>
+      <div class="reason-row">
+        <div class="reason-label">Service Done</div>
+        <div class="reason-track"><div class="reason-fill" style="width:${pct(serviceDone.length,attended.length)}%;background:var(--green);"></div></div>
+        <div class="reason-val">${serviceDone.length}</div>
+      </div>
+      <div class="reason-row">
+        <div class="reason-label">Service Not Done</div>
+        <div class="reason-track"><div class="reason-fill" style="width:${pct(serviceNotDone.length,attended.length)}%;background:var(--red);"></div></div>
+        <div class="reason-val">${serviceNotDone.length}</div>
+      </div>
     </div>
   `;
 
@@ -807,11 +819,8 @@ function render(rows) {
       <h3 style="margin-bottom:0.3rem;">Rescheduled <span style="font-size:1.4rem;font-weight:800;color:var(--text);margin-left:0.4rem;">${rescheduled.length}</span></h3>
       <div class="journey" style="margin-bottom:0.8rem;">Did not attend &rarr; Rescheduled</div>
 
-      <div class="reasons-label">Previously Booked Branches</div>
+      <div class="reasons-label">Rescheduled</div>
       ${prevRows}
-
-      <div class="reasons-label" style="margin-top:0.8rem;">Rescheduled Branch</div>
-      ${newRows}
     </div>
   `;
 
