@@ -789,7 +789,7 @@ function render(rows) {
       <h3 style="margin-bottom:0.3rem;">Rescheduled</h3>
       <div class="journey" style="margin-bottom:0.8rem;">Did not attend &rarr; Rescheduled</div>
 
-      <div class="reasons-label">RESCHEDULED &nbsp;<span style="font-size:1.1rem;font-weight:800;color:var(--text);">${rescheduled.length}</span></div>
+      <div class="reasons-label">RESCHEDULED &nbsp;<span style="font-size:1.1rem;font-weight:800;color:var(--text-mute);">${rescheduled.length}</span> &nbsp;<span style="font-size:0.75rem;color:var(--text-mute);font-weight:500;">(${pct(rescheduled.length,notAttended.length)}%)</span></div>
       ${prevRows}
     </div>
   `;
