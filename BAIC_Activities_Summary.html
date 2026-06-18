@@ -774,7 +774,52 @@ function render(rows) {
     </div>
   `;
 
-  document.getElementById('funnel-row').innerHTML = card1 + card2 + card3 + card4;
+  // --- Card 5: Rescheduled Summary ---
+  const rescheduled = rows.filter(r => (r['Rescheduled?']||'').trim().toLowerCase() === 'yes');
+
+  // Previously booked branches (original branch of rescheduled customers)
+  const prevBranches = {};
+  rescheduled.forEach(r => {
+    const b = (r['Branch']||'').trim().replace(/^\d+\s*-?\s*/,'').trim();
+    if (b) prevBranches[b] = (prevBranches[b]||0) + 1;
+  });
+  const prevEntries = Object.entries(prevBranches).sort((a,b)=>b[1]-a[1]);
+  const maxPrev = prevEntries.length ? prevEntries[0][1] : 1;
+  let prevRows = prevEntries.length ? prevEntries.map(([b,c]) => `
+      <div class="fbar-row">
+        <div class="fbar-label">${esc(b)}</div>
+        <div class="fbar-track"><div class="fbar-fill" style="width:${(c/maxPrev*100).toFixed(0)}%;background:var(--amber);">${c}</div></div>
+      </div>`).join('') : `<div style="font-size:0.82rem;color:var(--text-mute);font-style:italic;">None</div>`;
+
+  // New rescheduled branches (Booking Branch column)
+  const newBranches = {};
+  rescheduled.forEach(r => {
+    const b = (r['Booking Branch']||'').trim().replace(/^\d+\s*-?\s*/,'').trim();
+    if (b) newBranches[b] = (newBranches[b]||0) + 1;
+  });
+  const newEntries = Object.entries(newBranches).sort((a,b)=>b[1]-a[1]);
+  const maxNew = newEntries.length ? newEntries[0][1] : 1;
+  let newRows = newEntries.length ? newEntries.map(([b,c]) => `
+      <div class="fbar-row">
+        <div class="fbar-label">${esc(b)}</div>
+        <div class="fbar-track"><div class="fbar-fill" style="width:${(c/maxNew*100).toFixed(0)}%;background:#2E6FB0;">${c}</div></div>
+      </div>`).join('') : `<div style="font-size:0.82rem;color:var(--text-mute);font-style:italic;">None</div>`;
+
+  const card5 = `
+    <div class="funnel-card">
+      <h3>Rescheduled</h3>
+      <div class="journey">Did not attend &rarr; Rescheduled</div>
+      <div class="sub-title" style="font-size:2rem;font-weight:800;color:var(--text);margin:0.4rem 0 1rem;">${rescheduled.length} <span style="font-size:0.82rem;font-weight:500;color:var(--text-mute);">customers rescheduled</span></div>
+
+      <div class="reasons-label">Previously Booked Branches</div>
+      ${prevRows}
+
+      <div class="reasons-label" style="margin-top:1rem;">Rescheduled Branch</div>
+      ${newRows}
+    </div>
+  `;
+
+  document.getElementById('funnel-row').innerHTML = card1 + card2 + card3 + card4 + card5;
 
   // ---------- DETAIL SECTION: PIVOT TABLE ----------
   CASES = notSatisfied.map((r, i) => ({
