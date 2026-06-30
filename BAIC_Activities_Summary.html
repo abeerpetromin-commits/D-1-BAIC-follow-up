@@ -588,16 +588,16 @@ function applyFilterAndRender() {
 
 function render(rows) {
   const total = rows.length;
-  const answered = rows.filter(r => (r['Status']||'').trim() === 'Answered');
-  const noAnswer = rows.filter(r => (r['Status']||'').trim() === 'No Answer');
-  const closed = rows.filter(r => (r['Status']||'').trim() === 'Closed');
+  const answered = rows.filter(r => (r['Status']||'').trim().toLowerCase() === 'answered');
+  const noAnswer = rows.filter(r => (r['Status']||'').trim().toLowerCase() === 'no answer');
+  const closed = rows.filter(r => (r['Status']||'').trim().toLowerCase() === 'closed');
   const noAnswerTotal = noAnswer.length + closed.length;
 
-  const attended = answered.filter(r => (r['Customer Attented?']||'').trim() === 'Yes');
-  const notAttended = answered.filter(r => (r['Customer Attented?']||'').trim() === 'No');
+  const attended = answered.filter(r => (r['Customer Attented?']||'').trim().toLowerCase() === 'yes');
+  const notAttended = answered.filter(r => (r['Customer Attented?']||'').trim().toLowerCase() === 'no');
 
-  const satisfied = attended.filter(r => (r['If yes? Satisfied?']||'').trim() === 'Yes');
-  const notSatisfied = attended.filter(r => (r['If yes? Satisfied?']||'').trim() === 'No');
+  const satisfied = attended.filter(r => (r['If yes? Satisfied?']||'').trim().toLowerCase() === 'yes');
+  const notSatisfied = attended.filter(r => (r['If yes? Satisfied?']||'').trim().toLowerCase() === 'no');
 
   // ---------- KPI ROW ----------
   const dateRange = "LIVE";
@@ -634,8 +634,8 @@ function render(rows) {
 
   // --- Card 1: Call Outcome ---
   // Service done = attended & satisfied, Service NOT done = attended & not satisfied
-  const serviceDone    = rows.filter(r => (r['Service Done?']||'').trim().toLowerCase() === 'yes');
-  const serviceNotDone = rows.filter(r => (r['Service Done?']||'').trim().toLowerCase() === 'no');
+  const serviceDone    = attended.filter(r => (r['If yes? Satisfied?']||'').trim() === 'Yes');
+  const serviceNotDone = attended.filter(r => (r['If yes? Satisfied?']||'').trim() === 'No');
 
   // --- Card 2: Attendance ---
   const notAttendReasons = {};
@@ -683,12 +683,12 @@ function render(rows) {
       <div class="reasons-label" style="margin-top:1rem;">Service Outcome</div>
       <div class="reason-row">
         <div class="reason-label">Service Done</div>
-        <div class="reason-track"><div class="reason-fill" style="width:${pct(serviceDone.length,total)}%;background:var(--green);"></div></div>
+        <div class="reason-track"><div class="reason-fill" style="width:${pct(serviceDone.length,attended.length)}%;background:var(--green);"></div></div>
         <div class="reason-val">${serviceDone.length}</div>
       </div>
       <div class="reason-row">
         <div class="reason-label">Service Not Done</div>
-        <div class="reason-track"><div class="reason-fill" style="width:${pct(serviceNotDone.length,total)}%;background:var(--red);"></div></div>
+        <div class="reason-track"><div class="reason-fill" style="width:${pct(serviceNotDone.length,attended.length)}%;background:var(--red);"></div></div>
         <div class="reason-val">${serviceNotDone.length}</div>
       </div>
     </div>
@@ -702,7 +702,7 @@ function render(rows) {
   });
   let satRows = '';
   const maxSat = Math.max(1, ...Object.values(satReasons));
-  Object.entries(satReasons).forEach(([reason, count]) => {
+  Object.entries(satReasons).sort((a,b)=>b[1]-a[1]).forEach(([reason, count]) => {
     satRows += `
       <div class="reason-row">
         <div class="reason-label">${esc(reason)}</div>
@@ -819,11 +819,12 @@ function render(rows) {
     let rowTotal = 0;
     let cells = '';
     reasonsSet.forEach(reason => {
-      const matchCase = CASES.find(c => c.branch===branch && c.reason===reason);
-      if (matchCase) {
-        cells += `<td class="pivot-cell active" onclick="showCase('${matchCase.id}')">1</td>`;
-        rowTotal += 1;
-        colTotals[reason] += 1;
+      const matchCases = CASES.filter(c => c.branch===branch && c.reason===reason);
+      if (matchCases.length > 0) {
+        const ids = matchCases.map(c => c.id).join(',');
+        cells += `<td class="pivot-cell active" onclick="showCases('${ids}')">${matchCases.length}</td>`;
+        rowTotal += matchCases.length;
+        colTotals[reason] += matchCases.length;
       } else {
         cells += `<td class="pivot-cell">&nbsp;</td>`;
       }
@@ -887,29 +888,40 @@ function render(rows) {
 }
 
 function showCase(id) {
-  const data = document.querySelector('#case-data [data-case="' + id + '"]');
+  showCases(id);
+}
+
+function showCases(ids) {
+  const idList = ids.split(',');
   const panel = document.getElementById('case-detail');
-  if (!data) return;
 
   document.querySelectorAll('.pivot-cell.active').forEach(function(el){ el.classList.remove('selected'); });
   document.querySelectorAll('.pivot-cell.active').forEach(function(el){
-    if (el.getAttribute('onclick') === "showCase('" + id + "')") {
+    if (el.getAttribute('onclick') === "showCases('" + ids + "')") {
       el.classList.add('selected');
     }
   });
 
-  const commentVal = data.dataset.comment;
-  const commentHtml = (commentVal === 'No comment' || commentVal === '')
-    ? '<span class="none">No comment</span>'
-    : commentVal;
-
-  panel.innerHTML =
-    '<div class="case-detail-tags">' +
-      '<span class="pill-static branch-pill">' + data.dataset.branch + '</span>' +
-      '<span class="reason-tag">' + data.dataset.reason + '</span>' +
-    '</div>' +
-    '<div class="case-detail-comment-label">Comment</div>' +
-    '<div class="case-detail-comment">' + commentHtml + '</div>';
+  let html = '';
+  idList.forEach(function(id, idx) {
+    const data = document.querySelector('#case-data [data-case="' + id + '"]');
+    if (!data) return;
+    const commentVal = data.dataset.comment;
+    const commentHtml = (commentVal === 'No comment' || commentVal === '')
+      ? '<span class="none">No comment</span>'
+      : commentVal;
+    if (idList.length > 1) {
+      html += '<div style="font-size:0.7rem;font-weight:700;color:var(--text-mute);margin:' + (idx>0?'0.8rem':'0') + ' 0 0.3rem;text-transform:uppercase;">Case ' + (idx+1) + '</div>';
+    }
+    html +=
+      '<div class="case-detail-tags">' +
+        '<span class="pill-static branch-pill">' + data.dataset.branch + '</span>' +
+        '<span class="reason-tag">' + data.dataset.reason + '</span>' +
+      '</div>' +
+      '<div class="case-detail-comment-label">Comment</div>' +
+      '<div class="case-detail-comment">' + commentHtml + '</div>';
+  });
+  panel.innerHTML = html;
 }
 
 // initial load + auto-refresh every 60 seconds
