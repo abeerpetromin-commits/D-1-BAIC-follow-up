@@ -514,7 +514,11 @@ function loadData() {
     skipEmptyLines: true,
     complete: function(results) {
       try {
-        ALL_ROWS = results.data.filter(r => (r['Branch'] && r['Branch'].trim() !== ''));
+        ALL_ROWS = results.data.filter(r => {
+          const wip = (r['WIP']||'').toString().trim();
+          const branch = (r['Branch']||'').toString().trim();
+          return wip !== '' || branch !== '';
+        });
         populateDateFilter(ALL_ROWS);
         applyFilterAndRender();
         document.getElementById('load-status').style.display = 'none';
